@@ -1,0 +1,45 @@
+# 2026-06-06: 根目录忽略规则，避免提交本地密钥、依赖、构建产物和记忆数据库。
+
+# environment
+.env
+*.env.local
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local runtime data
+data/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# logs and generated demo outputs
+*.log
+output.ipynb
+output.txt
+backend/plan_result.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
