@@ -120,6 +120,9 @@ Linux / macOS：
 cd xxxx项目目录
 chmod +x setup.sh start_backend.sh start_frontend.sh start_all.sh
 ./setup.sh
+安装npm可能会出现安装node版本不够的问题，可下载20.0以上版本的node
+之后切换到前端文件夹cd SmartHorseKnowWay_agent\frontend
+执行npm install 完成前端的依赖组件
 ```
 
 配置脚本不会替你填写真实密钥。运行完成后，需要编辑下面两个文件：
@@ -190,6 +193,34 @@ VITE_AMAP_WEB_JS_KEY=your_amap_js_api_key
 - `VITE_API_BASE_URL`：后端地址。
 - `VITE_AMAP_WEB_JS_KEY`：高德 Web JS API Key，用于结果页地图。
 - `VITE_AMAP_WEB_KEY`：预留给前端接口调用。
+
+## 3. 端口号更改
+```
+这一条只适合不想采用默认端口号或者默认端口号被占用的情况
+假设这是想要部署的本地端口号
+后端 8010
+前端 5173
+须要更改三个地方
+1. backend\.env 
+  PORT=8010
+  CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+  如果你是远程 Linux 服务器，不是本机浏览器访问，还要把服务器 IP/域名加进去，例如
+  CORS_ORIGINS=http://你的服务器IP:5173,http://localhost:5173,http://127.0.0.1:5173
+
+2. frontend/.env
+  VITE_API_BASE_URL=http://localhost:8010
+  如果前端页面是在你自己电脑浏览器访问远程服务器，要写服务器地址：
+  VITE_API_BASE_URL=http://你的服务器IP:8010
+
+3.frontend/vite.config.ts 
+  server: {
+  host: '0.0.0.0',
+  port: 5173,
+  proxy: {
+    '/api': {
+      target: 'http://localhost:8010',
+
+```
 
 ## 一键启动本地服务
 
