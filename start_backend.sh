@@ -20,6 +20,6 @@ if [ ! -x "$PYTHON" ]; then
   exit 1
 fi
 
-echo "[SmartHorse] 启动后端：http://127.0.0.1:8000"
+echo "[SmartHorse] 启动后端"
 cd "$BACKEND"
 "$PYTHON" run.py
