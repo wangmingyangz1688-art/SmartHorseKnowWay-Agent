@@ -34,6 +34,44 @@ if (!(Test-Path $Python)) {
 Write-Host "[SmartHorse] Installing/updating backend dependencies..."
 & $Pip install -r (Join-Path $Backend "requirements.txt")
 
+# ==========================================
+# Node.js Version Check for Windows (ASCII Output)
+# ==========================================
+Write-Host "[SmartHorse] Checking Node.js environment (requires >= 22.0)..."
+$nodeOk = $false
+
+if (Get-Command "node" -ErrorAction SilentlyContinue) {
+  $nodeVersionStr = node -v
+  # Extract major version number (e.g., "v22.1.0" -> 22)
+  if ($nodeVersionStr -match "v(\d+)\.") {
+    $nodeMajor = [int]$matches[1]
+    if ($nodeMajor -ge 22) {
+      $nodeOk = $true
+      Write-Host "[SmartHorse] Current Node.js version is $nodeVersionStr, requirement met."
+    }
+  }
+}
+
+if (-not $nodeOk) {
+  Write-Host "[SmartHorse] WARNING: Node.js is missing or version is below 22.0." -ForegroundColor Yellow
+    
+  # Try to rescue with nvm-windows if available
+  if (Get-Command "nvm" -ErrorAction SilentlyContinue) {
+    Write-Host "[SmartHorse] Detected nvm-windows. Attempting to install/use Node.js 22..." -ForegroundColor Cyan
+    nvm install 22
+    nvm use 22
+  }
+  else {
+    Write-Host "[SmartHorse] FATAL ERROR: Qualified Node.js not found and nvm-windows is missing." -ForegroundColor Red
+    Write-Host "[SmartHorse] Fix it by running this in an Administrator PowerShell:" -ForegroundColor White
+    Write-Host "             winget install OpenJS.NodeJS" -ForegroundColor Green
+    Write-Host "[SmartHorse] Or manually download version 22+ from https://nodejs.org/" -ForegroundColor White
+    Write-Host "[SmartHorse] Restart your terminal after installation and run this script again." -ForegroundColor Yellow
+    exit 1
+  }
+}
+# ==========================================
+
 Write-Host "[SmartHorse] Installing/updating frontend dependencies..."
 Push-Location $Frontend
 try {
