@@ -2,13 +2,30 @@
 
 > 说明项目能力、环境配置、一键启动、GitHub 提交注意事项和敏感信息保护。
 
-## 项目展示
-前端表单提交页：<img src="docs/pic/1.png" alt="前端表单提交页" style="zoom: 25%;" />
-前端结果页展示<img src="docs/pic/2.png" alt="前端结果页展示1" style="zoom: 25%;" />
-<img src="docs/pic/3.png" alt="前端结果页展示2" style="zoom: 25%;" />
-记忆结构知识图谱展示
-<img src="docs/pic/4.png" alt="知识图谱" style="zoom: 25%;" />
-<img src="docs/pic/5.png" alt="知识图谱" style="zoom: 25%;" />
+### 项目展示
+
+<p align="center">
+  <b>前端表单提交页</b><br>
+  <img src="docs/pic/1.png" alt="前端表单提交页" width="70%" />
+</p>
+
+<br> <p align="center">
+  <b>前端结果页展示</b>
+</p>
+
+| 前端结果页展示 1 | 前端结果页展示 2 |
+| :---: | :---: |
+| <img src="docs/pic/2.png" width="100%" /> | <img src="docs/pic/3.png" width="100%" /> |
+
+<br>
+
+### 核心能力
+
+<p align="center">
+  <b>记忆结构知识图谱展示</b><br>
+  <img src="docs/pic/4.png" alt="知识图谱1" width="45%" />
+  <img src="docs/pic/5.png" alt="知识图谱2" width="45%" />
+</p>
 
 SmartHorseKnowWay 是一个面向本地生活场景的活动规划与执行 Agent。用户输入一句自然语言目标，例如“晚上想和女朋友看电影再吃烧烤”“带爸妈孩子找个安静舒服的公园逛逛”，系统会自动识别人群、时间、场景、饮食和距离约束，结合高德地图、天气、Mock 预约/购票和 Graph Memory RAG，生成 4-6 小时左右的可执行活动方案。
 
