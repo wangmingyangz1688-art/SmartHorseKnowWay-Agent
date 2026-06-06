@@ -70,8 +70,7 @@ SmartHorseKnowWay_agent/
 │   └── package.json
 ├── docs/
 │   ├── competition_design.md # 比赛设计说明
-│   ├── neo4j_setup.md        # Neo4j 配置说明
-│   └── progress_memory.md    # 项目进度记录
+│   
 ├── setup.ps1                 # Windows 首次配置
 ├── setup.sh                  # Linux/macOS 首次配置
 ├── start_backend.ps1         # Windows 一键启动后端
