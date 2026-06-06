@@ -17,7 +17,7 @@ try {
     Write-Host "[SmartHorse] frontend/node_modules missing. Run .\setup.ps1 first."
     exit 1
   }
-  Write-Host "[SmartHorse] Starting frontend: http://127.0.0.1:8888"
+  Write-Host "[SmartHorse] Starting frontend"
   npm run dev
 }
 finally {
