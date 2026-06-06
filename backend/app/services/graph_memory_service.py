@@ -156,10 +156,20 @@ class GraphMemoryService:
             )
 
     def clear_user_profile(self, user_id: str) -> None:
-        """2026-06-04: 重建前清理某个用户的 Neo4j 画像图，保留 SQLite 原始反馈作为数据源。"""
+        """2026-06-06: 重建前清理某个用户的 Neo4j 画像图，连同该用户场景下的旧地点反馈边一起清理。"""
         if not self._available or not self._driver:
             return
         with self._driver.session(database=self.settings.neo4j_database) as session:
+            session.run(
+                """
+                MATCH (u:User {user_id: $user_id})-[:HAS_SCENARIO]->(us:UserScenario)
+                      -[:LIKES_PLACE|DISLIKES_PLACE]->(place:Place)
+                      -[r:HAS_POSITIVE_FEEDBACK|HAS_NEGATIVE_FEEDBACK]->(:Preference)
+                WHERE r.user_id IS NULL OR r.user_id = $user_id
+                DELETE r
+                """,
+                {"user_id": user_id},
+            )
             session.run(
                 """
                 MATCH (u:User {user_id: $user_id})-[:HAS_SCENARIO]->(us:UserScenario)
@@ -179,6 +189,17 @@ class GraphMemoryService:
                 MATCH (p:Preference)
                 WHERE NOT (p)--()
                 DELETE p
+                """
+            )
+            # 2026-06-06: 历史版本曾把“下次别推/换一个”写成偏好节点；重建时强制移除这类动作词节点和边。
+            session.run(
+                """
+                MATCH (pref:Preference)
+                WHERE pref.key IN [
+                    '不想再推荐', '下次别推', '别推荐', '不要再推荐',
+                    '不推荐', '换一个', '不喜欢这个'
+                ]
+                DETACH DELETE pref
                 """
             )
 
@@ -284,6 +305,8 @@ class GraphMemoryService:
                     MERGE (us)-[sr:{scenario_place_rel}]->(place)
                       ON CREATE SET sr.evidence_count = 0
                     SET sr.evidence_count = sr.evidence_count + 1,
+                        sr.user_id = $user_id,
+                        sr.user_scenario_key = $user_scenario_key,
                         sr.last_event_id = $event_id,
                         sr.last_event_type = $event_type,
                         sr.last_seen = $created_at
@@ -293,6 +316,8 @@ class GraphMemoryService:
                     MERGE (place)-[r:{place_rel}]->(pref)
                       ON CREATE SET r.evidence_count = 0
                     SET r.evidence_count = r.evidence_count + 1,
+                        r.user_id = $user_id,
+                        r.user_scenario_key = $user_scenario_key,
                         r.last_event_id = $event_id,
                         r.last_event_type = $event_type,
                         r.confidence = CASE
@@ -322,6 +347,8 @@ class GraphMemoryService:
                 MERGE (us)-[r:{rel_type}]->(pref)
                   ON CREATE SET r.evidence_count = 0
                 SET r.evidence_count = r.evidence_count + 1,
+                    r.user_id = $user_id,
+                    r.user_scenario_key = $user_scenario_key,
                     r.last_event_id = $event_id,
                     r.last_event_type = $event_type,
                     r.confidence = CASE
@@ -354,6 +381,8 @@ class GraphMemoryService:
                 MERGE (us)-[r:{rel_type}]->(place)
                   ON CREATE SET r.evidence_count = 0
                 SET r.evidence_count = r.evidence_count + 1,
+                    r.user_id = $user_id,
+                    r.user_scenario_key = $user_scenario_key,
                     r.last_event_id = $event_id,
                     r.last_event_type = $event_type,
                     r.confidence = CASE
