@@ -1,8 +1,8 @@
 # SmartHorseKnowWay：本地活动规划与执行 Agent
 
 > 说明项目能力、环境配置、一键启动、GitHub 提交注意事项和敏感信息保护。
-
-### 项目展示
+## 可视化展示
+### 前端表单展示
 
 <p align="center">
   <b>前端表单提交页</b><br>
@@ -19,14 +19,16 @@
 
 <br>
 
-### 核心能力
+### Graphrag记忆模块展示
 
 <p align="center">
   <b>记忆结构知识图谱展示</b><br>
   <img src="docs/pic/4.png" alt="知识图谱1" width="45%" />
   <img src="docs/pic/5.png" alt="知识图谱2" width="45%" />
 </p>
+<br>
 
+## 场景介绍与实现链路
 SmartHorseKnowWay 是一个面向本地生活场景的活动规划与执行 Agent。用户输入一句自然语言目标，例如“晚上想和女朋友看电影再吃烧烤”“带爸妈孩子找个安静舒服的公园逛逛”，系统会自动识别人群、时间、场景、饮食和距离约束，结合高德地图、天气、Mock 预约/购票和 Graph Memory RAG，生成 4-6 小时左右的可执行活动方案。
 
 项目支持两种规划入口：
@@ -260,6 +262,8 @@ python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
 python run.py
+若上面指令没反应也可以采取下面指令
+uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Windows 前端
@@ -278,6 +282,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python run.py
+若上面指令没反应也可以采取下面指令
+uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Linux / macOS 前端
