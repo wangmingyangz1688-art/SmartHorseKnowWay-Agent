@@ -15,14 +15,15 @@ from .graph_memory_service import get_graph_memory_service
 
 
 TECHNICAL_MEMORY_TAGS = {"真实POI", "交通"}
+FEEDBACK_ACTION_TAGS = {"不想再推荐", "下次别推", "别推荐", "不要再推荐", "不推荐", "换一个", "不喜欢这个"}
 
 
 def _filter_memory_tags(tags: Optional[List[str]]) -> List[str]:
-    """2026-06-05: 过滤内部技术标签，避免“真实POI”等系统状态被当成用户偏好。"""
+    """2026-06-06: 过滤内部技术标签和反馈动作词，避免它们被当成可泛化用户偏好。"""
     clean: List[str] = []
     for tag in tags or []:
         value = str(tag).strip()
-        if not value or value in TECHNICAL_MEMORY_TAGS:
+        if not value or value in TECHNICAL_MEMORY_TAGS or value in FEEDBACK_ACTION_TAGS:
             continue
         if value not in clean:
             clean.append(value)
@@ -55,8 +56,8 @@ class MemoryExtractor:
         "重油重辣": ["太油", "油腻", "重油", "太辣", "重口"],
         "不适合孩子": ["不适合孩子", "不适合小孩", "孩子不喜欢"],
         "不适合老人": ["不适合老人", "爸妈累", "父母累"],
-        "不想再推荐": ["下次别推", "别推荐", "不要再推荐"],
     }
+    FEEDBACK_ACTION_RULES = ["下次别推", "别推荐", "不要再推荐", "不想再推荐", "不推荐", "换一个", "不喜欢这个"]
     POSITIVE_RULES = {
         "近距离": ["离得近", "很近", "方便", "不远"],
         "少排队": ["不用排队", "排队少", "不用等"],
@@ -84,8 +85,8 @@ class MemoryExtractor:
 
         negative_hits = self._match_rules(text, self.NEGATIVE_RULES)
         positive_hits = self._match_rules(text, self.POSITIVE_RULES)
-        if event_type in ("dislike", "avoid", "skip"):
-            negative_hits.append("不想再推荐")
+        # 2026-06-06: 反馈动作词只决定对象级 DISLIKES_PLACE，不再生成“不想再推荐”偏好节点。
+        action_rejects_target = event_type in ("dislike", "avoid", "skip") or self._has_feedback_action(text)
         if event_type in ("like", "execute", "copy_share"):
             positive_hits.extend(tags[:3])
 
@@ -120,7 +121,7 @@ class MemoryExtractor:
                     confidence=0.85 if event_type == "like" else 0.7,
                     reason=text,
                 ))
-            if event_type in ("dislike", "avoid", "skip") or negative_hits:
+            if action_rejects_target or negative_hits:
                 memories.append(ExtractedMemory(
                     level="object",
                     relation="DISLIKES_PLACE",
@@ -151,6 +152,10 @@ class MemoryExtractor:
             if any(keyword in text for keyword in keywords):
                 hits.append(value)
         return hits
+
+    def _has_feedback_action(self, text: str) -> bool:
+        """2026-06-06: 识别“下次别推/换一个”等动作词，只用于决定是否避开当前对象。"""
+        return any(keyword in text for keyword in self.FEEDBACK_ACTION_RULES)
 
 
 class MemoryService:
@@ -347,11 +352,13 @@ class MemoryService:
         }
 
     def cleanup_technical_tags(self, user_id: str = "") -> Dict[str, Any]:
-        """2026-06-05: 清理历史误写入的内部技术标签，修复“真实POI”出现在记忆命中里的问题。"""
+        """2026-06-06: 清理历史误写入的内部技术标签和反馈动作词，修复“真实POI/不想再推荐”出现在记忆命中里的问题。"""
         scenario_deleted = 0
         profile_deleted = 0
+        object_reason_updated = 0
+        cleanup_tags = TECHNICAL_MEMORY_TAGS | FEEDBACK_ACTION_TAGS
         with self._connect() as conn:
-            for tag in TECHNICAL_MEMORY_TAGS:
+            for tag in cleanup_tags:
                 if user_id:
                     cur = conn.execute(
                         "DELETE FROM scenario_memory WHERE user_id=? AND value=?",
@@ -363,15 +370,23 @@ class MemoryService:
                         (user_id, tag),
                     )
                     profile_deleted += cur.rowcount or 0
+                    cur = conn.execute(
+                        "UPDATE object_memory SET reason='' WHERE user_id=? AND reason=?",
+                        (user_id, tag),
+                    )
+                    object_reason_updated += cur.rowcount or 0
                 else:
                     cur = conn.execute("DELETE FROM scenario_memory WHERE value=?", (tag,))
                     scenario_deleted += cur.rowcount or 0
                     cur = conn.execute("DELETE FROM user_profile_memory WHERE value=?", (tag,))
                     profile_deleted += cur.rowcount or 0
+                    cur = conn.execute("UPDATE object_memory SET reason='' WHERE reason=?", (tag,))
+                    object_reason_updated += cur.rowcount or 0
         return {
             "scenario_deleted": scenario_deleted,
             "profile_deleted": profile_deleted,
-            "filtered_tags": sorted(TECHNICAL_MEMORY_TAGS),
+            "object_reason_updated": object_reason_updated,
+            "filtered_tags": sorted(cleanup_tags),
         }
 
     def get_summary(self, user_id: str) -> Dict[str, Any]:
@@ -454,6 +469,64 @@ class MemoryService:
             "user_id": user_id,
             "event_count": rebuilt_count,
             "message": "Neo4j 用户画像图已按新结构重建",
+        }
+
+    def rebuild_memories_from_events(self, user_id: str = "") -> Dict[str, Any]:
+        """2026-06-06: 使用最新抽取规则重建 SQLite 凝练记忆，并同步重建 Neo4j 用户画像。"""
+        with self._connect() as conn:
+            if user_id:
+                conn.execute("DELETE FROM scenario_memory WHERE user_id=?", (user_id,))
+                conn.execute("DELETE FROM object_memory WHERE user_id=?", (user_id,))
+                conn.execute("DELETE FROM user_profile_memory WHERE user_id=?", (user_id,))
+            else:
+                conn.execute("DELETE FROM scenario_memory")
+                conn.execute("DELETE FROM object_memory")
+                conn.execute("DELETE FROM user_profile_memory")
+
+            query = """
+                SELECT id, user_id, event_type, scenario, target_type, target_name,
+                       tags_json, feedback_text, raw_text, created_at
+                FROM memory_events
+                WHERE feedback_text <> ''
+            """
+            params: tuple[Any, ...] = ()
+            if user_id:
+                query += " AND user_id=?"
+                params = (user_id,)
+            query += " ORDER BY created_at ASC"
+            rows = self._fetch_all(conn, query, params)
+
+        rebuilt_count = 0
+        rebuilt_users: set[str] = set()
+        for row in rows:
+            try:
+                tags = json.loads(row.get("tags_json") or "[]")
+            except Exception:
+                tags = []
+            extracted = self.extractor.extract(
+                event_type=row["event_type"],
+                feedback_text=row["feedback_text"],
+                scenario=row["scenario"],
+                target_type=row["target_type"],
+                target_name=row["target_name"],
+                tags=tags,
+            )
+            self._persist_extracted(row["user_id"], row["scenario"], extracted)
+            rebuilt_users.add(row["user_id"])
+            rebuilt_count += 1
+
+        for uid in rebuilt_users:
+            self._promote_cross_scenario_preferences(uid)
+            try:
+                self.rebuild_graph_for_user(uid)
+            except Exception as exc:
+                print(f"[WARN] Neo4j用户画像重建失败: {exc}")
+
+        return {
+            "success": True,
+            "user_id": user_id or "ALL",
+            "rebuilt_events": rebuilt_count,
+            "rebuilt_users": sorted(rebuilt_users),
         }
 
     def _persist_extracted(self, user_id: str, scenario: str, memories: List[ExtractedMemory]) -> None:
