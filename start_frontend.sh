@@ -18,5 +18,5 @@ if [ ! -d "node_modules" ]; then
   exit 1
 fi
 
-echo "[SmartHorse] 启动前端：http://127.0.0.1:8888"
+echo "[SmartHorse] 启动前端"
 npm run dev
