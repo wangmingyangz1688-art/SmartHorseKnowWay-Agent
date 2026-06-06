@@ -10,5 +10,5 @@ Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", 
 Start-Sleep -Seconds 2
 Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$FrontendScript`""
 
-Write-Host "[SmartHorse] Backend: http://127.0.0.1:8000"
-Write-Host "[SmartHorse] Frontend: http://127.0.0.1:8888"
+Write-Host "[SmartHorse] Backend"
+Write-Host "[SmartHorse] Frontend"
