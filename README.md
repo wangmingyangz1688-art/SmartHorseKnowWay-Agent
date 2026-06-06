@@ -1,6 +1,13 @@
 # SmartHorseKnowWay：本地活动规划与执行 Agent
 
-> 2026-06-06：整理比赛提交版 README，说明项目能力、环境配置、一键启动、GitHub 提交注意事项和敏感信息保护。
+> 说明项目能力、环境配置、一键启动、GitHub 提交注意事项和敏感信息保护。
+
+​前端表单提交页：<img src="pic/1.png" alt="前端表单提交页" style="zoom: 25%;" />
+前端结果页展示<img src="pic/2.png" alt="前端结果页展示1" style="zoom: 25%;" />
+<img src="pic/3.png" alt="前端结果页展示2" style="zoom: 25%;" /> 
+记忆结构知识图谱展示
+<img src="pic/4.png" alt="知识图谱" style="zoom: 25%;" />
+<img src="pic/5.png" alt="知识图谱" style="zoom: 25%;" />
 
 SmartHorseKnowWay 是一个面向本地生活场景的活动规划与执行 Agent。用户输入一句自然语言目标，例如“晚上想和女朋友看电影再吃烧烤”“带爸妈孩子找个安静舒服的公园逛逛”，系统会自动识别人群、时间、场景、饮食和距离约束，结合高德地图、天气、Mock 预约/购票和 Graph Memory RAG，生成 4-6 小时左右的可执行活动方案。
 
@@ -83,7 +90,7 @@ SmartHorseKnowWay_agent/
 Windows：
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent
+cd XXXX项目目录
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup.ps1
 ```
@@ -91,7 +98,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Linux / macOS：
 
 ```bash
-cd /path/to/SmartHorseKnowWay_agent
+cd xxxx项目目录
 chmod +x setup.sh start_backend.sh start_frontend.sh start_all.sh
 ./setup.sh
 ```
@@ -108,7 +115,7 @@ frontend/.env
 如果没有运行 `setup.ps1` / `setup.sh`，也可以手动复制模板：
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent\backend
+cd xxxx项目目录
 Copy-Item .env.example .env
 ```
 
@@ -147,7 +154,7 @@ NEO4J_DATABASE=neo4j
 复制模板：
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent\frontend
+cd xxxx项目目录
 Copy-Item .env.example .env
 ```
 
@@ -178,7 +185,7 @@ VITE_AMAP_WEB_JS_KEY=your_amap_js_api_key
 推荐在项目根目录执行：
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent
+cd xxxx项目目录
 .\start_all.ps1
 ```
 
@@ -206,7 +213,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 首次使用给脚本增加执行权限，已经运行过 `setup.sh` 的可以跳过：
 
 ```bash
-cd /path/to/SmartHorseKnowWay_agent
+cd xxxx项目目录
 chmod +x start_backend.sh start_frontend.sh start_all.sh
 ```
 
@@ -230,7 +237,7 @@ chmod +x start_backend.sh start_frontend.sh start_all.sh
 ### Windows 后端
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent\backend
+cd xxxx项目目录
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
@@ -240,7 +247,7 @@ python run.py
 ### Windows 前端
 
 ```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent\frontend
+cd xxxx项目目录
 npm install
 npm run dev
 ```
@@ -248,7 +255,7 @@ npm run dev
 ### Linux / macOS 后端
 
 ```bash
-cd /path/to/SmartHorseKnowWay_agent/backend
+cd xxxx项目目录
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -258,7 +265,7 @@ python run.py
 ### Linux / macOS 前端
 
 ```bash
-cd /path/to/SmartHorseKnowWay_agent/frontend
+cd xxxx项目目录
 npm install
 npm run dev
 ```
@@ -292,104 +299,6 @@ NEO4J_PASSWORD=你的密码
 NEO4J_DATABASE=localplan
 ```
 
-4. 重启后端。
-
-更多说明见：
-
-```text
-docs/neo4j_setup.md
-```
-
-## 比赛设计文档
-
-比赛要求的 2-3 页设计说明在：
-
-```text
-docs/competition_design.md
-```
-
-文档覆盖：
-
-- Planning 策略
-- 工具调用链
-- 规则质检
-- 异常处理
-- Graph Memory RAG
-- fast / agent 双链路
-- 真实 POI 落地机制
-
-## GitHub 提交注意事项
-
-不要提交以下内容：
-
-- `backend/.env`
-- `frontend/.env`
-- `node_modules/`
-- `frontend/dist/`
-- `backend/.venv/`
-- `data/`
-- `backend/data/`
-- `*.db`
-- 任何 API Key、密码、Neo4j 本地数据库
-
-本项目根目录已经提供 `.gitignore`，请以 `SmartHorseKnowWay_agent` 作为 Git 仓库根目录，不要把整个 `E:\Aprocess\TripProject` 都推上去。
-
-推荐提交前检查：
-
-```powershell
-git status --short
-```
-
-确认没有 `.env`、`node_modules`、数据库文件后再提交。
-
-## 初始化 Git 仓库并推送
-
-建议只把 `SmartHorseKnowWay_agent` 作为 Git 仓库根目录，不要把整个 `E:\Aprocess\TripProject` 都推上去。父目录里还有旧项目、实验文件和本地输出，容易把无关内容或敏感信息带进仓库。
-
-在 GitHub 创建一个空仓库，例如：
-
-```text
-https://github.com/your-name/SmartHorseKnowWay_agent.git
-```
-
-然后在本地执行：
-
-```powershell
-cd E:\Aprocess\TripProject\SmartHorseKnowWay_agent
-git init
-git add .
-git status --short
-git commit -m "Initial competition version"
-git branch -M main
-git remote add origin https://github.com/your-name/SmartHorseKnowWay_agent.git
-git push -u origin main
-```
-
-如果已经有远程仓库：
-
-```powershell
-git remote add origin 你的仓库地址
-git push -u origin main
-```
-
-推送前可以检查将要提交的文件：
-
-```powershell
-git status --short
-```
-
-确认不要出现：
-
-```text
-backend/.env
-frontend/.env
-backend/data/
-frontend/node_modules/
-frontend/dist/
-```
-
-如果 GitHub 要求登录，可以使用浏览器登录、Git Credential Manager，或改用 SSH Key。
-
 ## 常见问题
 
 ### 1. 地图不显示
@@ -407,10 +316,6 @@ frontend/dist/
 ### 4. Neo4j 连接失败
 
 可以先把 `NEO4J_ENABLED=false`，不影响主流程。Neo4j 只作为图谱记忆展示增强。
-
-### 5. 不想把密钥推到 GitHub
-
-这是正确做法。仓库只提交 `.env.example`，真实 `.env` 留在本地。
 
 ## 许可
 
