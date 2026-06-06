@@ -19,7 +19,7 @@ if (!(Test-Path $Python)) {
   exit 1
 }
 
-Write-Host "[SmartHorse] Starting backend: http://127.0.0.1:8000"
+Write-Host "[SmartHorse] Starting backend"
 Push-Location $Backend
 try {
   & $Python "run.py"
