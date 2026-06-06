@@ -304,7 +304,7 @@
                       :disabled="isReplanning"
                       @click="replanWithoutItem(item)"
                     >
-                      {{ isReplanning ? '重想中' : '换一个' }}
+                      {{ isReplanning ? '重构中' : '换一个' }}
                     </button>
                   </div>
                 </div>
