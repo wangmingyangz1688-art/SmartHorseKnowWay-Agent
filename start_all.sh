@@ -15,5 +15,5 @@ cleanup() {
 trap cleanup EXIT
 
 sleep 2
-echo "[SmartHorse] 启动前端..."
+echo "[SmartHorse] 启动前端.."
 bash "$ROOT/start_frontend.sh"
