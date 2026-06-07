@@ -100,10 +100,10 @@
       </div>
       <button
         class="checkout-primary-btn"
-        :disabled="isExecuting || allActionsExecuted"
+        :disabled="isAnyExecuting || allActionsExecuted"
         @click="executeAllActions"
       >
-        <template v-if="isExecuting">
+        <template v-if="isAnyExecuting">
           <span class="spinner dark"></span>
           <span>安排中...</span>
         </template>
@@ -302,9 +302,37 @@
                       class="replace-btn"
                       type="button"
                       :disabled="isReplanning"
-                      @click="replanWithoutItem(item)"
+                      @click="toggleReplaceReason(item)"
                     >
                       {{ isReplanning ? '重构中' : '换一个' }}
+                    </button>
+                  </div>
+                </div>
+                <!-- 2026-06-06: “换一个”先收集原因，再带原因重排并沉淀为可解释记忆 -->
+                <div class="replace-reason-panel" v-if="replaceOpen[itemKey(item)]">
+                  <textarea
+                    v-model="replaceDrafts[itemKey(item)]"
+                    class="replace-reason-input"
+                    rows="2"
+                    placeholder="简单说一下为什么想换，比如：这家太远了、不是烧烤、环境太吵"
+                  ></textarea>
+                  <div class="replace-reason-actions">
+                    <button
+                      class="replace-chip"
+                      type="button"
+                      v-for="chip in replaceReasonChips(item)"
+                      :key="chip"
+                      @click="appendReplaceReason(item, chip)"
+                    >
+                      {{ chip }}
+                    </button>
+                    <button
+                      class="replace-confirm-btn"
+                      type="button"
+                      :disabled="isReplanning"
+                      @click="replanWithoutItem(item)"
+                    >
+                      {{ isReplanning ? 'Thinking' : '确认换一个' }}
                     </button>
                   </div>
                 </div>
@@ -491,7 +519,7 @@
               class="action-exec-btn"
               :class="action.action_type"
               @click="executeSingleAction(action)"
-              :disabled="isExecuting"
+              :disabled="isActionExecuting(action)"
             >
               {{ getActionBtnText(action.action_type) }}
             </button>
@@ -518,7 +546,7 @@
             <div class="retry-actions">
               <button
                 class="retry-btn secondary"
-                :disabled="isExecuting"
+                :disabled="isActionExecuting(action)"
                 @click="retryAction(action)"
               >
                 重试
@@ -526,7 +554,7 @@
               <button
                 class="retry-btn primary"
                 v-if="getActionState(action).fallback_action"
-                :disabled="isExecuting"
+                :disabled="isActionExecuting(action)"
                 @click="useFallbackAction(action)"
               >
                 改用备选
@@ -540,7 +568,7 @@
       <div class="batch-execute" v-if="!allActionsExecuted">
         <button
           class="batch-exec-btn"
-          :disabled="isExecuting"
+          :disabled="isAnyExecuting"
           @click="executeAllActions"
         >
           <template v-if="isExecuting">
@@ -604,7 +632,7 @@
       <button
         class="bottom-btn primary"
         v-if="plan.executable_actions && plan.executable_actions.length && !allActionsExecuted"
-        :disabled="isExecuting"
+        :disabled="isAnyExecuting"
         @click="executeAllActions"
       >
         {{ isExecuting ? '安排中...' : '⚡ 确认并一键安排' }}
@@ -612,7 +640,7 @@
       <!-- 2026-06-04: 底部增加整体重新思考入口，补齐“这套方案不满意”的交互 -->
       <button
         class="bottom-btn rethink"
-        v-if="!isExecuting"
+        v-if="!isAnyExecuting"
         :disabled="isReplanning"
         @click="rethinkWholePlan"
       >
@@ -658,6 +686,7 @@ const copySuccess = ref(false)
 const contactName = ref('用户')
 const contactPhone = ref('')
 const isExecuting = ref(false)
+const executingActionIds = reactive<Record<string, boolean>>({})
 const executedActions = reactive<Record<string, any>>({})
 const executionSummary = ref('')
 const executionAllSuccess = ref(false)
@@ -673,6 +702,9 @@ const feedbackSubmitting = reactive<Record<string, boolean>>({})
 const feedbackStatus = reactive<Record<string, string>>({})
 // 2026-06-04: 用户不满意某站时，支持带反馈约束重新规划整条路线
 const isReplanning = ref(false)
+// 2026-06-06: “换一个”原因输入状态，避免无原因换站污染对象记忆和推荐约束
+const replaceOpen = reactive<Record<string, boolean>>({})
+const replaceDrafts = reactive<Record<string, string>>({})
 
 // ============================================================================
 // 计算属性
@@ -750,6 +782,14 @@ const allActionsExecuted = computed(() => {
 })
 
 // 2026-06-04: 订单式执行状态工具函数
+const isAnyExecuting = computed(() => {
+  return isExecuting.value || Object.values(executingActionIds).some(Boolean)
+})
+
+function isActionExecuting(action: any) {
+  return isExecuting.value || !!executingActionIds[action.action_id]
+}
+
 function getActionState(action: any) {
   return executedActions[action.action_id] || {
     status: 'pending',
@@ -805,6 +845,27 @@ function appendFeedbackChip(item: any, chip: string) {
   const key = itemKey(item)
   const current = feedbackDrafts[key] || ''
   feedbackDrafts[key] = current ? `${current}，${chip}` : chip
+}
+
+function toggleReplaceReason(item: any) {
+  const key = itemKey(item)
+  replaceOpen[key] = !replaceOpen[key]
+  if (replaceOpen[key] && !replaceDrafts[key]) {
+    replaceDrafts[key] = item.activity_type === 'eat' ? '想换一家更符合口味的餐厅' : '想换一个更合适的地点'
+  }
+}
+
+function replaceReasonChips(item: any) {
+  if (item.activity_type === 'eat') {
+    return ['不是我想吃的', '太远了', '价格偏高', '排队久', '环境太吵']
+  }
+  return ['不想去这里', '太远了', '不符合本次需求', '人太多', '换成更轻松的']
+}
+
+function appendReplaceReason(item: any, chip: string) {
+  const key = itemKey(item)
+  const current = replaceDrafts[key] || ''
+  replaceDrafts[key] = current ? `${current}，${chip}` : chip
 }
 
 function inferFeedbackEventType(text: string) {
@@ -887,35 +948,50 @@ async function rememberNegativeItem(item: any, text: string) {
 async function replanWithoutItem(item: any) {
   if (!originalRequest.value || isReplanning.value) return
   const name = item.venue_name || item.title || '这个地点'
+  const key = itemKey(item)
+  const userReason = (replaceDrafts[key] || '').trim()
   const reason = item.activity_type === 'eat'
-    ? `我不想去${name}吃饭，请换一家更合适的餐厅，避开这个餐厅。`
-    : `我不想去${name}，请把这一站换成更适合当前场景的地点，避开这个地点。`
+    ? `我不想去${name}吃饭，原因：${userReason || '想换一家更合适的餐厅'}。请换一家更合适的餐厅，避开这个餐厅。`
+    : `我不想去${name}，原因：${userReason || '想换一个更合适的地点'}。请把这一站换成更适合当前场景的地点，避开这个地点。`
 
   await rememberNegativeItem(item, reason)
-  await replanWithExtraConstraint(reason)
+  await replanWithExtraConstraint(reason, [name])
+  replaceOpen[key] = false
+  replaceDrafts[key] = ''
 }
 
 async function rethinkWholePlan() {
   if (!originalRequest.value || isReplanning.value) return
-  await replanWithExtraConstraint('我对这套方案不太满意，请重新思考一套更贴合当前场景、更少折腾的方案。')
+  const currentPlaces = currentPlanPlaceNames()
+  const avoidText = currentPlaces.length ? `请避开当前这套方案里的地点：${currentPlaces.join('、')}。` : ''
+  await replanWithExtraConstraint(`我对这套方案不太满意，请重新思考一套更贴合当前场景、更少折腾的方案。${avoidText}`, currentPlaces)
 }
 
-async function replanWithExtraConstraint(extra: string) {
+async function replanWithExtraConstraint(extra: string, avoidPlaces: string[] = []) {
   isReplanning.value = true
   try {
     const fallbackExecutionMode = originalRequest.value?.planning_mode === 'nearby_quick' ? 'fast' : 'agent'
+    const mergedAvoidPlaces: string[] = Array.from(new Set<string>([
+      ...(originalRequest.value?.avoid_places || []).map((item: any) => String(item)),
+      ...avoidPlaces.filter(Boolean).map((item) => String(item)),
+    ]))
     const requestBody = {
       ...originalRequest.value,
       // 2026-06-05: 重新规划时保留执行模式，避免旧结果页请求缺少 execution_mode 后回退到深度 Agent/MCP 链路。
       execution_mode: originalRequest.value?.execution_mode || plan.value?.execution_mode || fallbackExecutionMode,
+      // 2026-06-06: 明确告诉后端要避开哪些旧 POI，解决“换一个/换一套还是原地点”的问题。
+      avoid_places: mergedAvoidPlaces,
       message: `${originalRequest.value.message || ''}\n补充要求：${extra}`,
     }
     const newPlan = await requestPlanStream(requestBody)
+    clearTransientPlanState()
+    normalizePlanMedia(newPlan)
     plan.value = newPlan
     originalRequest.value = requestBody
     sessionStorage.setItem('activityPlan', JSON.stringify(newPlan))
     sessionStorage.setItem('activityRequest', JSON.stringify(requestBody))
     Object.keys(executedActions).forEach((key) => delete executedActions[key])
+    Object.keys(executingActionIds).forEach((key) => delete executingActionIds[key])
     executionSummary.value = ''
     executionAllSuccess.value = false
     await nextTick()
@@ -925,6 +1001,40 @@ async function replanWithExtraConstraint(extra: string) {
     alert(`重新规划失败：${e.message || '未知错误'}`)
   } finally {
     isReplanning.value = false
+  }
+}
+
+function currentPlanPlaceNames(): string[] {
+  // 2026-06-06: 收集当前方案真实地点名，供“换一套方案”避开整套旧路线。
+  const names: string[] = (plan.value?.timeline || [])
+    .filter((item: any) => item?.activity_type !== 'transport')
+    .map((item: any) => String(item.venue_name || item.title || ''))
+    .filter(Boolean)
+  return Array.from(new Set<string>(names))
+}
+
+function clearTransientPlanState() {
+  // 2026-06-06: 重新规划前清空旧方案的图片、排队和反馈 UI 状态，避免“文字换了但图片仍是上一家”。
+  Object.keys(venuePhotos).forEach((key) => delete venuePhotos[key])
+  Object.keys(currentPhotoIndex).forEach((key) => delete currentPhotoIndex[key])
+  Object.keys(queueResults).forEach((key) => delete queueResults[key])
+  Object.keys(queueLoading).forEach((key) => delete queueLoading[key])
+  Object.keys(feedbackOpen).forEach((key) => delete feedbackOpen[key])
+  Object.keys(feedbackDrafts).forEach((key) => delete feedbackDrafts[key])
+  Object.keys(feedbackSubmitting).forEach((key) => delete feedbackSubmitting[key])
+  Object.keys(feedbackStatus).forEach((key) => delete feedbackStatus[key])
+  Object.keys(replaceOpen).forEach((key) => delete replaceOpen[key])
+  Object.keys(replaceDrafts).forEach((key) => delete replaceDrafts[key])
+  Object.keys(executingActionIds).forEach((key) => delete executingActionIds[key])
+  lightboxImage.value = null
+}
+
+function normalizePlanMedia(nextPlan: any) {
+  // 2026-06-06: 重排结果以真实 venue_name 为准重新拉图，不沿用 Planner 或旧状态里的图片 URL。
+  for (const item of nextPlan?.timeline || []) {
+    if (item?.activity_type !== 'transport') {
+      item.image_url = ''
+    }
   }
 }
 
@@ -1249,7 +1359,8 @@ async function checkQueue(item: any) {
 // ============================================================================
 
 async function executeSingleAction(action: any) {
-  isExecuting.value = true
+  if (isActionExecuting(action)) return
+  executingActionIds[action.action_id] = true
   markActionProcessing(action)
 
   try {
@@ -1265,10 +1376,17 @@ async function executeSingleAction(action: any) {
       }),
     })
 
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || `HTTP ${res.status}`)
+    }
+
     const data = await res.json()
 
     if (data.results && data.results.length > 0) {
       executedActions[action.action_id] = data.results[0]
+    } else {
+      throw new Error(data.message || '未返回执行结果')
     }
   } catch (e: any) {
     const now = new Date().toISOString()
@@ -1288,16 +1406,23 @@ async function executeSingleAction(action: any) {
       ],
     }
   } finally {
-    isExecuting.value = false
+    delete executingActionIds[action.action_id]
   }
 }
 
-function retryAction(action: any) {
+async function retryAction(action: any) {
+  if (isActionExecuting(action)) return
   delete executedActions[action.action_id]
-  executeSingleAction(action)
+  await executeSingleAction(action)
 }
 
-function useFallbackAction(action: any) {
+function buildFallbackActionId(currentId: string, fallbackId?: string) {
+  const base = String(currentId || fallbackId || 'act').replace(/(_fallback_free|_fallback|_retry)+$/g, '')
+  return `${base}_fallback_${Date.now()}`
+}
+
+async function useFallbackAction(action: any) {
+  if (isActionExecuting(action)) return
   const state = getActionState(action)
   const fallback = state.fallback_action
   if (!fallback || !plan.value?.executable_actions) return
@@ -1307,20 +1432,21 @@ function useFallbackAction(action: any) {
 
   const normalizedFallback = {
     ...fallback,
-    action_id: fallback.action_id || `${action.action_id}_fallback`,
+    action_id: buildFallbackActionId(action.action_id, fallback.action_id),
     is_optional: fallback.is_optional ?? action.is_optional,
     estimated_cost: fallback.estimated_cost ?? action.estimated_cost ?? 0,
   }
 
   plan.value.executable_actions.splice(index, 1, normalizedFallback)
   delete executedActions[action.action_id]
-  executeSingleAction(normalizedFallback)
+  await executeSingleAction(normalizedFallback)
 }
 
 async function executeAllActions() {
   if (!plan.value?.executable_actions?.length) return
 
   isExecuting.value = true
+  Object.keys(executingActionIds).forEach((key) => delete executingActionIds[key])
   executionSummary.value = ''
 
   try {
@@ -2346,6 +2472,62 @@ onMounted(() => {
 }
 
 .replace-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* 2026-06-06: 换站原因面板，先让用户说清楚原因，再触发重新规划 */
+.replace-reason-panel {
+  margin: 8px 0 10px;
+  padding: 10px;
+  border: 1px solid #fed7aa;
+  border-radius: var(--radius-sm);
+  background: #fff7ed;
+}
+
+.replace-reason-input {
+  width: 100%;
+  min-height: 46px;
+  resize: vertical;
+  border: 1px solid #fdba74;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #fff;
+}
+
+.replace-reason-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.replace-chip {
+  border: 1px solid #fed7aa;
+  background: #fff;
+  color: #9a3412;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.replace-confirm-btn {
+  margin-left: auto;
+  border: 0;
+  background: #ff6a00;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.replace-confirm-btn:disabled {
   opacity: 0.55;
   cursor: wait;
 }
