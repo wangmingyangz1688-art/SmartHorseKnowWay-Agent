@@ -204,8 +204,6 @@ VITE_AMAP_WEB_JS_KEY=your_amap_js_api_key
 1. backend\.env 
   PORT=8010
   CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-  如果你是远程 Linux 服务器，不是本机浏览器访问，还要把服务器 IP/域名加进去，例如
-  CORS_ORIGINS=http://你的服务器IP:5173,http://localhost:5173,http://127.0.0.1:5173
 
 2. frontend/.env
   VITE_API_BASE_URL=http://localhost:8010
@@ -216,6 +214,15 @@ VITE_AMAP_WEB_JS_KEY=your_amap_js_api_key
   server: {
   host: '0.0.0.0',
   port: 5173,
+  proxy: {
+    '/api': {
+      target: 'http://localhost:8010',
+  如果你是远程 Linux 服务器，不是本机浏览器访问，还要把服务器 IP/域名加进去，例如
+  frontend/vite.config.ts 
+  server: {
+  host: '0.0.0.0',
+  port: 5173,
+  allowedHosts: ['你的服务器IP'],
   proxy: {
     '/api': {
       target: 'http://localhost:8010',
