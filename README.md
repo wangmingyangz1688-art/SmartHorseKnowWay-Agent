@@ -28,6 +28,15 @@
 </p>
 <br>
 
+### 视频展示
+
+点击下方图片观看 SmartHorseKnowWay 完整运行演示：
+
+<p align="center">
+  <a href="https://www.bilibili.com/video/BV1XCEx6yE7X/?share_source=copy_web&vd_source=4889e26ca66b597f59950b68749e3731" target="_blank">
+    <img src="docs/pic/video_cover.png" alt="SmartHorseKnowWay 视频演示" width="80%" />
+  </a>
+</p>
 ## 场景介绍与实现链路
 SmartHorseKnowWay 是一个面向本地生活场景的活动规划与执行 Agent。用户输入一句自然语言目标，例如“晚上想和女朋友看电影再吃烧烤”“带爸妈孩子找个安静舒服的公园逛逛”，系统会自动识别人群、时间、场景、饮食和距离约束，结合高德地图、天气、Mock 预约/购票和 Graph Memory RAG，生成 4-6 小时左右的可执行活动方案。
 
