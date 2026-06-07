@@ -332,7 +332,7 @@
                       :disabled="isReplanning"
                       @click="replanWithoutItem(item)"
                     >
-                      {{ isReplanning ? 'Thinking' : '确认换一个' }}
+                      {{ isReplanning ? '重构中' : '确认更改' }}
                     </button>
                   </div>
                 </div>
