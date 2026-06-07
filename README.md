@@ -23,8 +23,8 @@
 
 <p align="center">
   <b>记忆结构知识图谱展示</b><br>
-  <img src="docs/pic/4.png" alt="知识图谱1" width="45%" />
-  <img src="docs/pic/5.png" alt="知识图谱2" width="45%" />
+  <img src="docs/pic/6.png" alt="知识图谱1" width="45%" />
+  <img src="docs/pic/7.png" alt="知识图谱2" width="45%" />
 </p>
 <br>
 
