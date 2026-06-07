@@ -675,6 +675,8 @@ def _build_request_dict(request: ActivityRequest) -> dict:
         "start_time": request.start_time,
         "duration_hours": request.duration_hours,
         "group_type": request.group_type,
+        # 2026-06-06: 透传换站/换整套时的避开列表，后端搜索和 POI 落地会据此排除旧地点。
+        "avoid_places": request.avoid_places,
     }
 
     if request.group_info:

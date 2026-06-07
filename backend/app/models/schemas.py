@@ -105,6 +105,11 @@ class ActivityRequest(BaseModel):
         description="预算上限(元,可选)",
         example=500
     )
+    # 2026-06-06: 重新规划时显式传入要避开的地点/餐厅，保证“换一个/换一套”真的避开旧方案。
+    avoid_places: List[str] = Field(
+        default_factory=list,
+        description="重新规划时需要避开的地点或餐厅名称"
+    )
 
     class Config:
         json_schema_extra = {
@@ -209,6 +214,11 @@ class TimelineItem(BaseModel):
 
     # POI信息（用于获取图片等）
     poi_id: Optional[str] = Field(default=None, description="高德POI ID")
+    venue_type: str = Field(default="", description="高德POI类型")
+    poi_type: str = Field(default="", description="高德POI类型(兼容字段)")
+    poi_keyword: str = Field(default="", description="命中该POI的搜索词")
+    source_keyword: str = Field(default="", description="该POI来源搜索词")
+    poi_category: str = Field(default="", description="POI候选类别: venue / restaurant")
     image_url: Optional[str] = Field(default=None, description="场所图片URL")
 
 
